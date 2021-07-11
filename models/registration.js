@@ -53,6 +53,16 @@ const User = mongoose.model('Users', {
     UserType: {
         type: String,
         enum: ['Admin', 'Buyer', 'Seller']
+    },
+    dots:{
+        "type": Number,
+        "required":true,
+        "default":0
+    },
+    satisfactionPoint:{
+        "type":Number,
+        "required":true,
+        "default":0
     }
 })
 module.exports = User

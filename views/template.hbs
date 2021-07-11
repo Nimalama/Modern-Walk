@@ -135,6 +135,19 @@
         <p style="text-align:center; font-weight:bolder;"> -Modern Walk</p>
     </div>
 
+    {{else if_equal  task 'Delivered'}}
+    <div class="wrapper col-6">
+    <h5 class="intro"> Modern Walk</h5>
+    <div class="contents">
+        <h5 class="headings"> {{ heading }} </h5>
+        <h6 class="greeting"> {{ greeting }} </h6>
+        <p class="info"> {{ message }} </p>
+        <p class="info"> {{ message2 }} </p>
+        <p class="info"> {{ message3 }} </p>
+
+        <p style="text-align:center; font-weight:bolder;"> -Modern Walk</p>
+    </div>
+
     
     {{/if_equal}}
 </body>

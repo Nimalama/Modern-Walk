@@ -1,4 +1,5 @@
 const Checkout = require('../models/checkoutModel');
+const User = require('../models/registration')
 const {getFormattedToday} = require('../utils/utils');
 const TimeHalt = require('../models/timehalt')
 
@@ -100,4 +101,79 @@ const replacementTracking = (req,res)=>{
     })
 }
 
-module.exports = {mapCheckout,limitations,replacementTracking};
+const getPoint = (point)=>{
+    //every case point is accumulated.
+    let thePoint = 0;
+    switch(point)
+    {
+        case 0:
+            thePoint = 0;
+            break;
+        case 1:
+            thePoint = 5;
+            break;
+        case 2:
+            thePoint = 15;  //its point is 10 with case 1 its 15
+            break; 
+        case 3:
+            thePoint = 35;
+            break;
+       case 4:
+           thePoint =  60;
+           break;
+        
+       case 5:
+           thePoint = 100;
+           break    
+
+    }
+
+    let accumulated = 100-thePoint;
+    return accumulated;
+}
+
+const mapSatisfaction = async (req,res,checkout,user)=>{
+    try
+    {
+        let userSatisfied = await Checkout.find({"deliveryStatus":"Success"})
+        .populate({
+            "path":"booking_id",
+            "match":{"user_id":user._id}
+        }).countDocuments({});
+
+        let satisfactionPoints = user.satisfactionPoint;
+        let pp = 0;
+        if(userSatisfied <= 1)
+        {
+            pp =1
+        }
+        else
+        {
+            pp = userSatisfied -1
+        }
+        let overallPoint = satisfactionPoints * pp;
+        let newPoint = getPoint(checkout.replacements);
+
+        let newOverall = overallPoint+newPoint;
+        let satisfactionMapped = parseFloat((newOverall / userSatisfied).toPrecision(2));
+
+        User.updateOne({"_id":user._id},{
+            $set:{
+                "satisfactionPoint":satisfactionMapped
+            }
+        })
+        .then((result)=>{
+            return res.status(200).json({"success":true,"message":"Thank you and visit again."})
+        })
+        .catch((err)=>{
+            return res.status(404).json({"success":false,"message":err})
+        })
+
+    }
+    catch(err)
+    {
+        return res.status(404).json({"success":false,"message":err});
+    }
+}
+
+module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction};

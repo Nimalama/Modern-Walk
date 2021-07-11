@@ -6,7 +6,7 @@ const Checkout = mongoose.model('Checkout',{
     "booking_id":{"type":ObjectId,"required":true,"ref":ClothingBooking},
     "quantity":{"type":Number,"required":true},
     "price":{"type":Number,"required":true},
-    "deliveryStatus":{"type":String,"required":true,"enum":['On a way',"Packed","Pending","Delivered"],"default":"Pending"},
+    "deliveryStatus":{"type":String,"required":true,"enum":['On a way',"Packed","Pending","Delivered","Cancelled"],"default":"Pending"},
     "booked_at":{"type":String,"required":true},
     "timeHour":{"type":[Number],"required":true},
     "replacements":{"type":Number,"required":true,"default":0},
@@ -21,7 +21,10 @@ const Checkout = mongoose.model('Checkout',{
     "replacementDate":{"type":String},
     "replacementTimeHour":{"type":[Number]},
     "tag":{"type":String,"required":true,"default":"Pending"},
-    "dateTime":{"type":Date,"required":true}
+    "dateTime":{"type":Date,"required":true},
+    "deliveredAt":{"type":String},
+    "unreceivedPoints":{"type":Number,"required":true,"default":0},
+    "unreceivedIncrement":{"type":String,"required":true}
 })
 
 module.exports = Checkout;
