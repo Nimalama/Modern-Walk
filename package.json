@@ -1,0 +1,26 @@
+{
+    "name": "clothingstore",
+    "version": "1.0.0",
+    "description": "Final Assignment",
+    "main": "app.js",
+    "scripts": {
+        "test": "jest"
+    },
+    "author": "Nima",
+    "license": "ISC",
+    "dependencies": {
+        "async": "^3.2.0",
+        "bcryptjs": "^2.4.3",
+        "cors": "^2.8.5",
+        "dotenv": "^10.0.0",
+        "express": "^4.17.1",
+        "express-validator": "^6.9.2",
+        "jest": "^26.6.3",
+        "jsonwebtoken": "^8.5.1",
+        "mongoose": "^5.11.11",
+        "multer": "^1.4.2",
+        "nodemailer": "^6.6.2",
+        "nodemailer-express-handlebars": "^4.0.0",
+        "path": "^0.12.7"
+    }
+}
