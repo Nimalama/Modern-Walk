@@ -1,4 +1,4 @@
-const TimeHalt = require('../models/TimeHalt');
+const TimeHalt = require('../models/timehalt');
 const { getFormattedToday,getTimeValue,getFancyDate } = require('./utils');
 const Participants = require('../models/giveawayparticipants');
 const Giveaway = require('../models/giveawayModel');

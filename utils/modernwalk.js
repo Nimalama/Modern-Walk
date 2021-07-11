@@ -1,4 +1,5 @@
 const {giveawayResult}=require('./giveawayUtils');
+const {mapCheckout,limitations,replacementTracking} = require('./bookingUtils');
 
 var serverStarted=false;
 var serverInterval;
@@ -44,6 +45,9 @@ const startServer = (req, res) => {
                     
                     
                     giveawayResult(req, res);
+                    mapCheckout(req,res);
+                    limitations(req,res);
+                    replacementTracking(req,res);
                     
                     console.log("Server running")
                 }
