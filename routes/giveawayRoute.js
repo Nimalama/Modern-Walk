@@ -11,7 +11,7 @@ const { check, validationResult } = require('express-validator');
 const { getGiveAwayCode, getFormattedToday, getTimeValue, getFancyDate } = require('../utils/utils');
 const async = require('async');
 const {sendMailMessage} = require('../utils/mail');
-const serverActivity = require('../utils/modernwalk');
+
 
 router.post('/addGiveAway', upload.array("giveawayItems"), auth.verifyUser, auth.verifyAdmin,
     [
@@ -285,8 +285,6 @@ router.get("/myParticipantRecord", auth.verifyUser, (req, res) => {
             return res.status(404).json({ "success": false, "message": err });
         })
 })
-router.get("/serverToggle",auth.verifyUser,(req,res)=>{
-    serverActivity(req, res)
-})
+
 
 module.exports = router;

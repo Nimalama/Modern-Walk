@@ -4,6 +4,8 @@ const Checkout = require('../models/checkoutModel');
 const ClothBooking = require('../models/bookingModel')
 const PunishDots = require('../models/punishDotsModel')
 const User = require('../models/registration')
+const Analysis = require('../models/analysisModel');
+const AnalysisItem = require('../models/analysisItemModel');
 const auth = require('../middleware/auth')
 const {check, validationResult} = require('express-validator')
 const {getProductCode,getFormattedToday,getTimeValue,getFancyDate} = require('../utils/utils')
@@ -441,6 +443,61 @@ router.post('/sucessOrReplacement',auth.verifyUser,async (req,res)=>{
     {
         return res.status(404).json({'success':false,"message":err});
     }
+})
+
+
+router.get('/getBusinessAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (req,res)=>{
+    try
+    {
+        let date = req.params.date;
+        let masterAnalysis = {};
+        let chart = {};
+        let analysis = await AnalysisItem.find({})       
+        .populate({
+            "path":"analysisId",
+            "match":{"date":date}
+        })
+        if(analysis.length > 0)
+        {
+            masterAnalysis = analysis[0].analysisId;
+            let overallForChart = await Analysis.find({});
+            overallForChart.sort((a,b)=>{return a.date.localeCompare(b.date)})
+            let minDate = overallForChart[0].date;
+            overallForChart.map((val)=>{return chart[val.date] = val.businessPoint});        
+            return res.status(200).json({"success":true,"message":"Data Fetched","data":analysis,"master":masterAnalysis,"chart":chart,"minDate":minDate});
+        }
+        else
+        {
+            return res.status(202).json({"success":false,"message":"No data found."});
+        }      
+    }
+    catch(err)
+    {
+        return res.status(404).json({"success":false,"message":err});
+    }
+})
+
+
+
+router.get('/satisfactionMapping',auth.verifyUser,auth.verifyAdmin,(req,res)=>{
+    User.find({})
+    .sort({"fname":1})
+    .then((data)=>{
+        if(data.length > 0)
+        {
+            data.sort((a,b)=>{return a.satisfactionPoint - b.satisfactionPoint}).reverse();
+            let satisfactionData = {};
+            data.map((val)=>{return satisfactionData[val.Username] = val.satisfactionPoint});
+            return res.status(200).json({"success":true,"message":"Data analyzed","data":satisfactionData})
+        }
+        else
+        {
+            return res.status(202).json({'success':false,"message":"No satisfaction records."})
+        }
+    })
+    .catch((err)=>{
+        return res.status(404).json({"success":false,"message":err})
+    })
 })
 
 

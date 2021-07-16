@@ -1,7 +1,10 @@
 const Checkout = require('../models/checkoutModel');
 const User = require('../models/registration')
-const {getFormattedToday} = require('../utils/utils');
+const {getFormattedToday, filterDate,days,getFancyDate} = require('../utils/utils');
 const TimeHalt = require('../models/timehalt')
+const Analysis = require('../models/analysisModel');
+const AnalysisItem = require('../models/analysisItemModel');
+const asyncc = require('async')
 
 const mapCheckout = async (req,res)=>{
     try
@@ -176,4 +179,102 @@ const mapSatisfaction = async (req,res,checkout,user)=>{
     }
 }
 
-module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction};
+
+const analyzeBusiness = async (req,res)=>{
+    try
+    {
+        let today = new Date();
+        today.setDate(today.getDate()-3);
+        let latestAnalyzed = getFormattedToday(today);
+        let analysisResults = await Analysis.find({}).sort({"date":-1}).limit(1);
+        if(analysisResults.length > 0)
+        {
+           latestAnalyzed = analysisResults[0].date;
+        }
+        
+        let dateFiltration = filterDate(latestAnalyzed); 
+        dateFiltration.sort((a,b)=>{return a.localeCompare(b)});
+
+        if(dateFiltration.length > 0)
+        {
+            asyncc.forEach(dateFiltration,async (i)=>{
+                let successCheckouts = await Checkout.find({"deliveredAt":{$exists:true},"deliveredAt":i,"userStatement":"Success"})
+                .populate({
+                    "path":"booking_id",
+                    "populate":{
+                        "path":"product_id",
+                        "select":['pname']
+                    }
+                })
+                if(successCheckouts.length > 0)
+                {
+                    let products = {};
+                    for(var i of successCheckouts)
+                    {
+                        let productId = i.booking_id.product_id._id.toString()
+                        if(Object.keys(products).includes(productId))
+                        {
+                            products[productId][0]+=i.quantity;
+                            products[productId][1]+=i.price;
+                        }
+                        else
+                        {
+                            products[productId] = [i.quantity, i.price];
+                        }
+                        
+                    }
+                    let overallQuantity = Object.values(products).map((val)=>{return val[0]}).reduce((acc,i)=>{return acc+i});
+                    let overallPrice = Object.values(products).map((val)=>{return val[1]}).reduce((acc,i)=>{return acc+i});
+                    let itemsSold = Object.keys(products).length;
+                    let commission = parseFloat(((8/100)*overallPrice).toPrecision(2));
+                    let businessPoint = parseFloat(((commission/overallPrice) * 100).toPrecision(2));
+
+                    let analysisObj = new Analysis({
+                        "day":days[new Date(i).getDay()],
+                        "date":i,
+                        "fancyDate":getFancyDate(new Date(i)).split("-")[0],
+                        "priceCollected":overallPrice,
+                        "commision":commission,
+                        "businessPoint":businessPoint,
+                        "itemsSold":itemsSold,
+                        "quantity":overallQuantity
+                    })
+
+                    analysisObj.save()
+                    .then((result)=>{
+                        for(var j in products)
+                        {
+                            const itemObj = new AnalysisItem({
+                                "analysisId":result._id,
+                                "item":j,
+                                "quantity":products[j][0],
+                                "priceCollection":products[j][1]
+                            })
+
+                            itemObj.save()
+                            .then((result2)=>{})
+                            .catch((err)=>{
+                                console.log(err);
+                            })
+                        }
+                    })
+                    .catch((err)=>{
+                        console.log(err);
+                    })
+                }
+            })
+            console.log(`Analyzed for ${dateFiltration.join(",")}`);
+        }
+        else
+        {
+            console.log("Business analyzed till required.")
+        }
+
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness};

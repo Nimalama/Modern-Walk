@@ -120,7 +120,22 @@ const monthAndDateFormatter = (data)=>{
     return detail;
 }
 
+const filterDate = (latestDate)=>{
+    let difference = parseInt((new Date().getTime() - new Date(latestDate).getTime())/(1000*60*60*24));
+    let dateContainer = [];
+    let latest = new Date(latestDate);
+    latest.setDate(latest.getDate());
+
+    while(dateContainer.length != difference)
+    {
+        let formatted = getFormattedToday(latest);
+        dateContainer.push(formatted);
+        latest.setDate(latest.getDate()+1);
+    }
+
+    return dateContainer;
+}
 
 
 
-module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter};
+module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days};
