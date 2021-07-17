@@ -522,4 +522,92 @@ router.get('/satisfactionMapping',auth.verifyUser,auth.verifyAdmin,(req,res)=>{
 })
 
 
+router.get('/dailyAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (req,res)=>{
+    try
+    {
+        let date = req.params.date;
+        //fetching every results from analysis model keeping analysis item as a parent.
+        let analysis = await AnalysisItem.find({})
+        .populate({
+            "path":"analysisId",
+            "match":{"date":date}
+        })
+        .populate({
+            "path":"item",
+            "options":{
+                "sort":{
+                    "pname":1
+                }
+            }
+        })
+
+        //go according to sale rate.
+        if(analysis.length > 0)
+        {
+            let itemsDescriptionContainer = {};
+            let sortedPrice = {};
+            let sortedQuantity = {};
+            for(var i of analysis)
+            {
+                if(Object.keys(itemsDescriptionContainer).includes(i.item.pname))
+                {
+                    itemsDescriptionContainer[i.item.pname][0]+=i.quantity;
+                    itemsDescriptionContainer[i.item.pname][1]+=i.priceCollection;
+                    
+                }
+                else
+                {
+                    itemsDescriptionContainer[i.item.pname] = [i.quantity,i.priceCollection]
+                }
+            }
+
+
+            let quantityValues = Object.values(itemsDescriptionContainer).map((val)=>{return val[0]});
+            let unqQuantity = Array.from(new Set(quantityValues));
+            unqQuantity.sort((a,b)=>{return a-b}).reverse();
+
+            let priceValue = Object.values(itemsDescriptionContainer).map((val)=>{return val[1]});
+            let unqPrice = Array.from(new Set(priceValue));
+            unqPrice.sort((a,b)=>{return a-b}).reverse();
+
+            for(var i of unqPrice)
+            {
+                for(var j in itemsDescriptionContainer)
+                {
+                    if(i == itemsDescriptionContainer[j][1])
+                    {
+                        sortedPrice[j] = itemsDescriptionContainer[j]
+                    }
+                }
+            }
+
+            for(var i of unqQuantity)
+            {
+                for(var j in itemsDescriptionContainer)
+                {
+                    if(i == itemsDescriptionContainer[j][0])
+                    {
+                        sortedQuantity[j] = itemsDescriptionContainer[j]
+                    }
+                }
+            }
+
+            let overallPackage = {};
+            overallPackage['quantityBox'] = sortedQuantity;
+            overallPackage['priceBox'] = sortedPrice;
+ 
+            let overallAnalysis = analysis[0].analysisId;
+            return res.status(200).json({"success":true,"overallAnalysis":overallAnalysis,"data":overallPackage,"date":getFancyDate(new Date(date))})
+        }
+        else
+        {
+            return res.status(202).json({"success":false,"message":"0 records found."})
+        }
+    }
+    catch(err){
+        return res.status(404).json({"success":false,"message":err});
+    }
+})
+
+
 module.exports = router;

@@ -267,4 +267,7 @@ const analyzeBusiness = async (req,res)=>{
     }
 }
 
+
+
+
 module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness};
