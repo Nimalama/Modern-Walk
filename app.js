@@ -8,6 +8,7 @@ const route = require('./routes/routes')
 const productRoute = require('./routes/productRoute');
 const bookRoute = require('./routes/bookingRoute');
 const giveAwayRoute = require('./routes/giveawayRoute');
+const checkoutRoute = require('./routes/checkoutRoute')
 
 
 const cors=require('cors');
@@ -24,8 +25,8 @@ app.use(express.json());
 app.use(route);
 app.use(productRoute);
 app.use(bookRoute);
-
 app.use(giveAwayRoute);
+app.use(checkoutRoute)
 
 
 app.listen(90)

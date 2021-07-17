@@ -45,10 +45,7 @@ const mapCheckout = async (req,res)=>{
 
 
 const limitations = (req,res)=>{
-    TimeHalt.findOne({"_id":"","updated_at":{$ne:getFormattedToday(new Date())}})
-    .then((data)=>{
-        if(data != null)
-        {
+   
             let checkOutLimitation = Checkout.find({"limit":{$exists:true},"limit":{$lte:getFormattedToday(new Date())},"userStatement":"Not Provided"});
             checkOutLimitation.then((data2)=>{
                 if(data2.length > 0)
@@ -60,16 +57,13 @@ const limitations = (req,res)=>{
                         .catch((err)=>{})
                     }
                 }
+                console.log("Limitations checked.")
             })
-        }
-        else
-        {
-            console.log("Limitation Mapped for today.")
-        }
-    })
-    .catch((err)=>{
-        console.log(err);
-    })
+            .catch((err)=>{
+                return res.status(404).json({"success":true,"message":err});
+            })
+        
+  
 }
 //replacement Tracking
 const replacementTracking = (req,res)=>{
@@ -138,23 +132,19 @@ const getPoint = (point)=>{
 const mapSatisfaction = async (req,res,checkout,user)=>{
     try
     {
-        let userSatisfied = await Checkout.find({"deliveryStatus":"Success"})
+        let userSatisfied = await Checkout.find({"userStatement":"Success"})
         .populate({
             "path":"booking_id",
             "match":{"user_id":user._id}
-        }).countDocuments({});
+        }).countDocuments({})
+        
 
         let satisfactionPoints = user.satisfactionPoint;
-        let pp = 0;
-        if(userSatisfied <= 1)
+        if(userSatisfied == 0)
         {
-            pp =1
+            userSatisfied = 1
         }
-        else
-        {
-            pp = userSatisfied -1
-        }
-        let overallPoint = satisfactionPoints * pp;
+        let overallPoint = satisfactionPoints * userSatisfied;
         let newPoint = getPoint(checkout.replacements);
 
         let newOverall = overallPoint+newPoint;

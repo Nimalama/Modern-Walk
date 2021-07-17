@@ -1,9 +1,10 @@
 const mongoose = require('mongoose');
 const {ObjectId} = require('bson');
 const Product = require('./productModel');
+const User = require('./registration')
 
 const ClothingBooking = mongoose.model('ClothingBooking',{
-    "user_id":{"type":ObjectId,"required":true},
+    "user_id":{"type":ObjectId,"required":true,ref:User},
     "product_id":{"type":ObjectId,"required":true,ref:Product},
     "quantity":{"type":Number,"required":true},
     "price":{"type":Number,"required":true},

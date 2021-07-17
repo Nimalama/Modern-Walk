@@ -23,7 +23,7 @@ router.post('/bookProduct',auth.verifyUser,[
         let errors = validationResult(req);
         if(errors.isEmpty())
         {
-            
+            let bid = req.body['bid']
             let cartItem = await ClothBooking.findOne({"_id":bid})
             .populate({
                 "path":"product_id",
@@ -42,6 +42,8 @@ router.post('/bookProduct',auth.verifyUser,[
                 let checkoutItems = await Checkout.find({});
                 let bookingCodes = checkoutItems.map((val)=>{return val.bookingCode});
                 let bookingCode = getProductCode(bookingCodes);
+                let today = new Date();
+                today.setDate(today.getDate()-2);
 
                 const bookingObj = new Checkout({
                     "quantity":qty,
@@ -51,7 +53,7 @@ router.post('/bookProduct',auth.verifyUser,[
                     "phoneNo2":phoneNo2,
                     "booking_id":bid,
                     "bookingCode":bookingCode,
-                    "booked_at":getFormattedToday(new Date()),
+                    "booked_at":getFormattedToday(today),
                     "timeHour":[new Date().getHours(),new Date().getMinutes()],
                     "dateTime":new Date(),
                     "unreceivedIncrement":getFormattedToday(new Date())
@@ -118,7 +120,7 @@ router.get('/myBookings',auth.verifyUser,async (req,res)=>{
         "dateTime":-1
     });
 
-    let pendingsOnAWay = await Checkout.find({"userStatement":"Not Provided",$or:{"deliveryStatus":"Pending","deliveryStatus":"On a way"}})
+    let pendingsOnAWay = await Checkout.find({"userStatement":"Not Provided",$or:[{"deliveryStatus":"Pending"},{"deliveryStatus":"On a way"}]})
     .populate({
         "path":"booking_id",
         "populate":{
@@ -148,7 +150,7 @@ router.get('/myBookings',auth.verifyUser,async (req,res)=>{
 
 
 router.delete('/deleteBooking/:bid',auth.verifyUser,(req,res)=>{
-   let bid = req.params.tid;
+   let bid = req.params.bid;
    let bookData = Checkout.findOne({"_id":bid,"deliveryStatus":"Pending"})
    bookData.then((data)=>{
        if(data!=null)
@@ -156,7 +158,8 @@ router.delete('/deleteBooking/:bid',auth.verifyUser,(req,res)=>{
           let dateInitialization = new Date(data.booked_at);
           dateInitialization.setHours(data.timeHour[0],data.timeHour[1],0)
           let difference = parseInt((new Date().getTime() - dateInitialization.getTime() )/(1000*60*60))
-          if(difference >=24)
+       
+          if(difference < 24)
           {
              Checkout.deleteOne({"_id":bid})
              .then((result)=>{
@@ -173,7 +176,7 @@ router.delete('/deleteBooking/:bid',auth.verifyUser,(req,res)=>{
        }
        else
        {
-           return res.status(202).json({"success":false,"message":"Deleting time was limited for 24 hours only!"})
+           return res.status(202).json({"success":false,"message":"Not in a pending line"})
        }
    })
    .catch((err)=>{
@@ -226,6 +229,7 @@ router.post('/deliverStatus',auth.verifyUser,auth.verifyAdmin, async (req,res)=>
                 "path":'product_id'
             }
         });
+       
         
         if(bookedData != null)
         {
@@ -243,7 +247,8 @@ router.post('/deliverStatus',auth.verifyUser,auth.verifyAdmin, async (req,res)=>
                         $set:{
                             "deliveryStatus":"Delivered",
                             "limit":getFormattedToday(today),
-                            "deliveredAt":getFormattedToday(new Date)
+                            "deliveredAt":getFormattedToday(new Date),
+                            "userStatement":"Not Provided"
                         }
                     })
                     .then((result)=>{
@@ -269,6 +274,7 @@ router.post('/deliverStatus',auth.verifyUser,auth.verifyAdmin, async (req,res)=>
                 let unreceivedPoints = bookedData.unreceivedPoints+1;
                 let lastDeclined = bookedData.unreceivedIncrement;
                 let declinationObj = {'unreceivedPoints':unreceivedPoints,'unreceivedIncrement':getFormattedToday(new Date())};
+                 let user = await User.findOne({"_id":bookedData.booking_id.user_id})
                 if(lastDeclined != getFormattedToday(new Date()))
                 {
                     if(unreceivedPoints >= 3)
@@ -285,49 +291,53 @@ router.post('/deliverStatus',auth.verifyUser,auth.verifyAdmin, async (req,res)=>
                         punishObj.save()
                         .then((result)=>{})
                         .catch((err)=>{return res.status(404).json({"success":false,"message":err})})
-
-                        let user = await User.findOne({"_id":bookedData.booking_id.user_id._id})
-
+                        
+                       
+                       
                         if(user != null)
                         {
                             let content = {
                                 "heading": "Punish Dots increased!!",
-                                "greeting": getTimeValue() + " " + bookedData.booking_id.user_id.fname + " " + bookedData.booking_id.user_id.lname + ",",
+                                "greeting": getTimeValue() + " " + user.fname + " " + user.lname + ",",
                                 "message": `Your dots has reached to ${user.dots+1}.`,
                                
                                 "message3":`Collecting more dots can be dangerous to you.`,
                                 "task": "Delivered"
                             }
-                            sendMailMessage("Modern Walk", bookedData.booking_id.user_id.email, content);
-                            User.updateOne({"_id":iser._id},{
+                            sendMailMessage("Modern Walk", user.Email, content);
+                            User.updateOne({"_id":user._id},{
                                 $set:{
                                     "dots":user.dots+1
                                 }
                             })
                             .then((result2)=>{})
-                            .catch((err)=>{return res.status(404).json({"success":false,"message":err})})
+                            .catch((err)=>{
+                                console.log(err)
+                                return res.status(404).json({"success":false,"message":err})})
                         }
                        
 
 
                     }
+                   
 
                     Checkout.updateOne({"_id":bid},{
                         $set:declinationObj
                     })
                     .then((result)=>{
-                        let content = {
+                         let content = {
                             "heading": "Product delivery Decline!!",
-                            "greeting": getTimeValue() + " " + bookedData.booking_id.user_id.fname + " " + bookedData.booking_id.user_id.lname + ",",
+                            "greeting": getTimeValue() + " " + user.fname + " " + user.lname + ",",
                             "message": `Your booking for ${bookedData.booking_id.product_id.pname} for ${bookedData.quantity} quantity has been declined at ${getFancyDate(new Date())} ${new Date().toLocaleTimeString()}`,
                            
                             "message3":`You have ${3-unreceivedPoints} chances remaining to receive your product.`,
                             "task": "Delivered"
                         }
-                        sendMailMessage("Modern Walk", bookedData.booking_id.user_id.email, content);
+                        sendMailMessage("Modern Walk", user.Email, content);
                         return res.status(200).json({"success":true,"message":"Decliation flag added."})
                     })
                     .catch((err)=>{
+                        console.log(err)
                         return res.status(404).json({"success":false,"message":err})
                     })
 
@@ -345,6 +355,7 @@ router.post('/deliverStatus',auth.verifyUser,auth.verifyAdmin, async (req,res)=>
     }
     catch(err)
     {
+        console.log(err)
         return res.status(404).json({"success":false,"message":err})
     }
 })
@@ -355,7 +366,7 @@ router.post('/sucessOrReplacement',auth.verifyUser,async (req,res)=>{
     {
         let bid = req.body['bid'];
         let decision = req.body['decision'];
-        let bookData = await Checkout.findOne({"_id":bid})
+        let bookData = await Checkout.findOne({"_id":bid,"deliveryStatus":"Delivered","userStatement":"Not Provided"})
         .populate({
             "path":"booking_id"
         })
@@ -381,7 +392,14 @@ router.post('/sucessOrReplacement',auth.verifyUser,async (req,res)=>{
                             "task": "Delivered"
                         }
                         sendMailMessage("Modern Walk", req.user.email, content);
-                        mapSatisfaction(req,res,result,req.user)
+                        // Checkout.findOne({"_id":bid})
+                        // .then((data2)=>{
+                            mapSatisfaction(req,res,result,req.user)
+                        // })
+                        // .catch((err)=>{
+                        //     return res.status(404).json({"success":false,"message":err})
+                        // })
+                        
                         
                     })
                     .catch((err)=>{
@@ -403,6 +421,9 @@ router.post('/sucessOrReplacement',auth.verifyUser,async (req,res)=>{
                             "deliveryStatus":"Pending",
                             "deliveryTaken":"Pending",
                             "replacements":replacements
+                        },
+                        $unset:{
+                            "limit":1
                         }
                     })
                     .then((result)=>{
