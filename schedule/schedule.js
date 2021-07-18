@@ -4,7 +4,7 @@ const {mapCheckout,limitations,replacementTracking,analyzeBusiness} = require('.
 
 
 let today = new Date();
-today.setHours(13,47,0)
+today.setHours(8,30,0)
 
 schedule.scheduleJob("1 min task","*/1 * * * *",(req,res)=>{
     mapCheckout(req,res);

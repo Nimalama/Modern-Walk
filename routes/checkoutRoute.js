@@ -102,7 +102,7 @@ router.get('/myBookings',auth.verifyUser,async (req,res)=>{
         "populate":{
             "path":"product_id"
         },
-        
+        "match":{"user_id":req.user._id}
     })
     .sort({
         "dateTime":-1
@@ -115,18 +115,20 @@ router.get('/myBookings',auth.verifyUser,async (req,res)=>{
             "path":"product_id"
         },
         
+        "match":{"user_id":req.user._id}
+        
     })
     .sort({
         "dateTime":-1
     });
 
-    let pendingsOnAWay = await Checkout.find({"userStatement":"Not Provided",$or:[{"deliveryStatus":"Pending"},{"deliveryStatus":"On a way"}]})
+    let pendingsOnAWay = await Checkout.find({"userStatement":"Not Provided",$or:[{"deliveryStatus":"Pending"},{"deliveryStatus":"On a way"},{"deliveryStatus":"Cancelled"}]})
     .populate({
         "path":"booking_id",
         "populate":{
             "path":"product_id"
         },
-        
+        "match":{"user_id":req.user._id}
     })
     .sort({
         "dateTime":1
@@ -136,10 +138,11 @@ router.get('/myBookings',auth.verifyUser,async (req,res)=>{
    merged.push(...successBookings);
    merged.push(...replacementNeeded);
    merged.push(...pendingsOnAWay)
+   let datas = merged.filter((val)=>{return val.booking_id != null})
 
    if(merged.length > 0)
    {
-     return res.status(200).json({"success":true,"message":`${merged.length} records found.`,'data':merged,'successBooking':successBookings,'replacements':replacementNeeded,'pendings':pendingsOnAWay})
+     return res.status(200).json({"success":true,"message":`${merged.length} records found.`,'data':datas,'successBooking':successBookings,'replacements':replacementNeeded,'pendings':pendingsOnAWay})
    }
    else
    {
@@ -480,11 +483,14 @@ router.get('/getBusinessAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (
         })
         if(analysis.length > 0)
         {
+           
+            analysis = analysis.filter((val)=>{return val.analysisId !=null})
             masterAnalysis = analysis[0].analysisId;
             let overallForChart = await Analysis.find({});
             overallForChart.sort((a,b)=>{return a.date.localeCompare(b.date)})
             let minDate = overallForChart[0].date;
-            overallForChart.map((val)=>{return chart[val.date] = val.businessPoint});        
+            overallForChart.map((val)=>{return chart[val.date] = val.businessPoint});   
+            console.log(masterAnalysis)     
             return res.status(200).json({"success":true,"message":"Data Fetched","data":analysis,"master":masterAnalysis,"chart":chart,"minDate":minDate});
         }
         else
@@ -597,6 +603,7 @@ router.get('/dailyAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (req,re
             overallPackage['priceBox'] = sortedPrice;
  
             let overallAnalysis = analysis[0].analysisId;
+           
             return res.status(200).json({"success":true,"overallAnalysis":overallAnalysis,"data":overallPackage,"date":getFancyDate(new Date(date))})
         }
         else
