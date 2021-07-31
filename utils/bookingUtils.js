@@ -52,7 +52,7 @@ const limitations = (req,res)=>{
                 {
                     for(var i of data2)
                     {
-                        Checkout.updateOne({"_id":i._id},{$set:{"userStatement":"Success"}})
+                        Checkout.updateOne({"_id":i._id},{$set:{"userStatement":"Success","deliveredAt":getFormattedToday(new Date())}})
                         .then((result)=>{})
                         .catch((err)=>{})
                     }

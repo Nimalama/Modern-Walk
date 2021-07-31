@@ -3,9 +3,7 @@ const mongoose = require('mongoose');
 const User = mongoose.model('Users', {
     profileImg:{
         type:String,
-        default:"no-img.jpg",
-        
-        unique:true
+        default:"no-img.jpg"
     },
     fname: {
         type: String,

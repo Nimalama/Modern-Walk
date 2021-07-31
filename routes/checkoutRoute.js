@@ -403,6 +403,7 @@ router.post('/sucessOrReplacement',auth.verifyUser,async (req,res)=>{
                         
                     })
                     .catch((err)=>{
+                        console.log(err)
                         return res.status(404).json({'success':false,"message":err});
                     })
                 }
@@ -420,7 +421,9 @@ router.post('/sucessOrReplacement',auth.verifyUser,async (req,res)=>{
                             "replacementTimeHour":[new Date().getHours(),new Date().getMinutes()],
                             "deliveryStatus":"Pending",
                             "deliveryTaken":"Pending",
-                            "replacements":replacements
+                            "replacements":replacements,
+                            "unreceivedPoints":0,
+                            "unreceivedIncrement":getFormattedToday(new Date())
                         },
                         $unset:{
                             "limit":1
@@ -439,6 +442,7 @@ router.post('/sucessOrReplacement',auth.verifyUser,async (req,res)=>{
                         return res.status(200).json({"success":true,"message":"Added to Replacement."})
                     })
                     .catch((err)=>{
+                        console.log(err)
                         return res.status(404).json({'success':false,"message":err});
                     })
                     }
@@ -462,6 +466,7 @@ router.post('/sucessOrReplacement',auth.verifyUser,async (req,res)=>{
     }
     catch(err)
     {
+        console.log(err)
         return res.status(404).json({'success':false,"message":err});
     }
 })
@@ -503,13 +508,45 @@ router.get('/getBusinessAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (
 router.get('/satisfactionMapping',auth.verifyUser,auth.verifyAdmin,(req,res)=>{
     User.find({})
     .sort({"fname":1})
-    .then((data)=>{
+    .then(async (data)=>{
         if(data.length > 0)
         {
-            data.sort((a,b)=>{return a.satisfactionPoint - b.satisfactionPoint}).reverse();
-            let satisfactionData = {};
-            data.map((val)=>{return satisfactionData[val.Username] = val.satisfactionPoint});
-            return res.status(200).json({"success":true,"message":"Data analyzed","data":satisfactionData})
+            try
+            {
+                // data.sort((a,b)=>{return a.satisfactionPoint - b.satisfactionPoint}).reverse();
+                let userAndCount = {};
+                let satisfactionData = {};
+                let scatterUsername = data.map((val)=>{return val.Username})
+                for(var i of data)
+                {
+                    let successBookingCount = await Checkout.find({"userStatement":"Success"})
+                    .populate({
+                        "path":"booking_id",
+                        "match":{"user_id":i._id}
+                    }).countDocuments({});
+
+                    userAndCount[i.Username] = successBookingCount; 
+                }
+              
+                let countValues = Object.values(userAndCount);
+                let unqCount = Array.from(new Set(countValues));
+                unqCount.sort((a,b)=>{return a-b}).reverse();
+
+                for(var i of unqCount){
+                    for(var j in userAndCount)
+                    {
+                        if(userAndCount[j] == i)
+                        {
+                            satisfactionData[j] = data[scatterUsername.indexOf(j)].satisfactionPoint;
+                        }
+                    }
+                }
+                return res.status(200).json({"success":true,"message":"Data analyzed","data":satisfactionData})
+            }
+            catch(err)
+            {
+                return res.status(404).json({"success":false,"message":err});
+            }
         }
         else
         {
@@ -596,8 +633,8 @@ router.get('/dailyAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (req,re
             overallPackage['quantityBox'] = sortedQuantity;
             overallPackage['priceBox'] = sortedPrice;
  
-            let overallAnalysis = analysis[0].analysisId;
-            return res.status(200).json({"success":true,"overallAnalysis":overallAnalysis,"data":overallPackage,"date":getFancyDate(new Date(date))})
+         
+            return res.status(200).json({"success":true,"data":overallPackage,"date":getFancyDate(new Date(date))})
         }
         else
         {
