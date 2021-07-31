@@ -136,19 +136,23 @@ const mapSatisfaction = async (req,res,checkout,user)=>{
         .populate({
             "path":"booking_id",
             "match":{"user_id":user._id}
-        }).countDocuments({})
+        })
+
+        let dataBox = userSatisfied.filter((val)=>{return val.booking_id != null}).length
         
 
         let satisfactionPoints = user.satisfactionPoint;
-        if(userSatisfied == 0)
+        
+        if(dataBox == 0)
         {
-            userSatisfied = 1
+            dataBox = 1
         }
-        let overallPoint = satisfactionPoints * userSatisfied;
+        let overallPoint = satisfactionPoints * (dataBox-1);
         let newPoint = getPoint(checkout.replacements);
+        
 
         let newOverall = overallPoint+newPoint;
-        let satisfactionMapped = parseFloat((newOverall / userSatisfied).toPrecision(2));
+        let satisfactionMapped = parseFloat((newOverall / dataBox).toPrecision(2));
 
         User.updateOne({"_id":user._id},{
             $set:{
@@ -199,26 +203,31 @@ const analyzeBusiness = async (req,res)=>{
                 if(successCheckouts.length > 0)
                 {
                     let products = {};
-                    for(var i of successCheckouts)
+                    for(var j of successCheckouts)
                     {
-                        let productId = i.booking_id.product_id._id.toString()
+                        let productId = j.booking_id.product_id._id.toString()
                         if(Object.keys(products).includes(productId))
                         {
-                            products[productId][0]+=i.quantity;
-                            products[productId][1]+=i.price;
+                            products[productId][0]+=j.quantity;
+                            products[productId][1]+=j.price;
                         }
                         else
                         {
-                            products[productId] = [i.quantity, i.price];
+                            products[productId] = [j.quantity, j.price];
                         }
                         
                     }
-                    let overallQuantity = Object.values(products).map((val)=>{return val[0]}).reduce((acc,i)=>{return acc+i});
-                    let overallPrice = Object.values(products).map((val)=>{return val[1]}).reduce((acc,i)=>{return acc+i});
+                    let overallQuantity = Object.values(products).map((val)=>{return val[0]}).reduce((acc,j)=>{return acc+j});
+                    let overallPrice = Object.values(products).map((val)=>{return val[1]}).reduce((acc,j)=>{return acc+j});
                     let itemsSold = Object.keys(products).length;
                     let commission = parseFloat(((8/100)*overallPrice).toPrecision(2));
                     let businessPoint = parseFloat(((commission/overallPrice) * 100).toPrecision(2));
-
+                    console.log(businessPoint)
+                    console.log(overallPrice)
+                    console.log(overallQuantity)
+                    console.log(commission)
+                    console.log(days)
+                   
                     let analysisObj = new Analysis({
                         "day":days[new Date(i).getDay()],
                         "date":i,
