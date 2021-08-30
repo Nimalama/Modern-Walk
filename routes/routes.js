@@ -6,6 +6,7 @@ const bcryptjs = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const auth= require('../middleware/auth');
 const upload = require('../middleware/upload');
+const {sendMailMessage} = require('../utils/mail')
 
 router.post('/users/insert', [
     check('fname', "First Name is required!!!").not().isEmpty(),
@@ -142,5 +143,85 @@ router.put('/change/updateprofile',upload.single('profileImg'),auth.verifyUser,(
         return res.status(202).json({"success":false,"message":err});
     })
 });
+
+
+//forgot password through link method
+router.post('/askEmail',async(req,res)=>{
+    try{
+        let email = req.body['email'].trim();
+        let user = await User.findOne({"email":email});
+        if(user != null)
+        {
+            let token = jwt.sign({"email":email},'resetKey',{expiresIn:'1h'})
+            let content = {
+                "heading": "Password Reset Link!!",
+                "resetPasswordLink":`http://localhost:3000/resetPassword/${token}`,
+                "task": "Reset Password"
+            }
+            sendMailMessage("Modern Walk", email, content);
+            return res.status(200).json({"success":true,"message":"Renew password email has been sent to you."})
+        }
+        else
+        {
+            return res.status(202).json({"success":false,"message":"Please provide registered email address."})
+        }
+    }
+    catch(err)
+    {
+        console.log(err);
+        return res.status(404).json({"success":false,"message":err});
+    }
+})
+
+
+//reset the password.
+router.post('/resetPassword',[
+    check('resetPassword','Password should be in the range of 8-13.').isLength({"min":8,"max":13})
+],async(req,res)=>{
+    try
+    {
+        let errors = validationResult(req);
+        if(errors.isEmpty())
+        {
+            let resetPassword = req.body['resetPassword'];
+            let confirmPassword = req.body['confirmPassword'];
+            let token = req.body['token'];
+            if(resetPassword != confirmPassword)
+            {
+                return res.status(202).json({"success":false,"message":"Password Mismatch."})
+            }
+            else
+            {
+                let tokenVerification = jwt.verify(token,'resetKey');
+                try
+                {
+                   bcryptjs.hash(resetPassword,10,(err,hash)=>{
+                       User.updateOne({"Email":tokenVerification.email},{$set:{"Password":resetPassword}})
+                       .then((result)=>{
+                           return res.status(200).json({"success":true,"message":"Password reset done."})
+                       })
+                       .catch((err)=>{
+                           return res.status(404).json({"success":false,"message":err})
+                       })
+                   })
+                }
+                catch(error)
+                {
+                    return res.status(202).json({"success":false,"message":"Token has been expired."})
+                }
+            }
+        }
+        else
+        {
+            return res.status(202).json({"success":false,"message":errors.array()[0].msg});
+        }
+    }
+    catch(err)
+    {
+       
+        return res.status(404).json({"success":false,"message":err})
+    }
+})
+
 
 module.exports = router;

@@ -9,14 +9,16 @@ const productRoute = require('./routes/productRoute');
 const bookRoute = require('./routes/bookingRoute');
 const giveAwayRoute = require('./routes/giveawayRoute');
 const checkoutRoute = require('./routes/checkoutRoute')
-
-
+const quizRoute = require('./routes/quizRoute')
 const cors=require('cors');
 const path = require('path');
-
-
+const morgan = require('morgan')
 
 const app = express();
+if (process.env.NODE_ENV.trim() === "development") {
+    app.use(morgan("dev"));
+}
+
 app.use(cors());
 app.use(bodyparser.urlencoded({ extended: false }))
 app.use('/images',express.static(path.join(__dirname,'/images')))
@@ -27,6 +29,7 @@ app.use(productRoute);
 app.use(bookRoute);
 app.use(giveAwayRoute);
 app.use(checkoutRoute)
+app.use(quizRoute)
 
 
 app.listen(90)
