@@ -9,8 +9,8 @@ const {getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,getFor
 router.post('/addQuiz',[
     check('paragraph','Please provide paragraph.').not().isEmpty(),
     check('questions','Provide questions for paragraph.').not().isEmpty(),
-    check('answers','Provide questions for questions.').not().isEmpty(),
-    check('realAnswer','Provide questions correct answer.').not().isEmpty(),
+    check('answers','Provide answers for questions.').not().isEmpty(),
+    check('realAnswer','Provide correct answer for questions.').not().isEmpty(),
     check('startAt','Please provide start date.').not().isEmpty(),
     check('startTime','Please provide start time.').not().isEmpty(),
     check('endTime','Please provide end time.').not().isEmpty(),
@@ -23,6 +23,7 @@ router.post('/addQuiz',[
         let errors = validationResult(req);
         if(errors.isEmpty())
         {
+            console.log(req.body)
             let paragraph = req.body['paragraph'].trim();
             let questions = req.body['questions'];
             let answers = req.body['answers'];
@@ -31,6 +32,8 @@ router.post('/addQuiz',[
             let startTime = req.body['startTime'];
             let endTime = req.body['endTime'];
             let chance = parseInt(req.body['chance']);
+
+            
 
             let errorBox = {};
 
@@ -104,9 +107,9 @@ router.post('/addQuiz',[
             
             if(timeFromTime < 5)
             {
-                if(!Object.keys(errorBox).includes('timeLimit'))
+                if(!Object.keys(errorBox).includes('endTime'))
                 {
-                    errorBox['timeLimit'] = "Time limitation should have atleast 5 minutes."
+                    errorBox['endTime'] = "Time limitation should have atleast 5 minutes."
                 }       
             }
 
@@ -161,7 +164,7 @@ router.post('/addQuiz',[
                 if(questionNos.length > 0)
                 {
                     questionNos = "Question Number "+questionNos.slice(0,questionNos.length-1)+" doesnot contain valid real answer which match with answer options."
-                    return res.status(202).json({'success':false,"message":"Error","error":{"random":questionNos}})
+                    return res.status(202).json({'success':false,"message":"Certain errors found.","error":{"random":questionNos}})
                 }
                 else
                 { 
@@ -205,6 +208,71 @@ router.post('/addQuiz',[
     }
 })
 
+
+//fetch ongoing quiz for today or future.
+router.get('/fetchAllFutureQuiz',auth.verifyUser,async(req,res)=>{
+    try
+    {
+        let quizDetails = await Quiz.find({
+            
+            $or:[
+                {
+                    "status":"Pending"
+                },
+                {
+                    "status":"Running"
+                }
+            ]
+        })
+        .sort({
+            "startAt":1,
+            "startTime.0":1
+        })
+
+        let quizFilter = quizDetails.filter((val)=>{return val.status == "Running"});
+        let quizIdContainer = quizFilter.map((val)=>{return val._id});
+
+        if(quizDetails.length > 0)
+        {
+            return res.status(200).json({"success":true,"message":`${quizDetails.length} records found.`, "data":quizDetails,"quizContainer":quizIdContainer});
+        }
+        else
+        {
+            return res.status(202).json({"success":false,"message":`${quizDetails.length} records found.`});
+        }
+    }
+    catch(err)
+    {
+        return res.status(404).json({"success":false,"message":err});
+    }
+})
+
+
+//fetch single quiz.
+router.get('/fetchSingleQuiz/:quizId',auth.verifyUser,async(req,res)=>{
+    try
+    {
+        let quizId = req.params.quizId;
+        let quiz = await Quiz.findOne({"_id":quizId,"startAt":getFormattedToday(new Date()),
+            "status":"Running"})
+        if(quiz != null)
+        {
+            let endTime = new Date();
+            endTime.setHours(quiz.endTime[0],quiz.endTime[1],0);
+            let secondTimer = parseInt(( endTime.getTime() - new Date().getTime() ) / (1000));
+            
+            return res.status(200).json({"success":true,"message":"Quiz found.","data":quiz,"quizTime":secondTimer});
+        }
+        else
+        {
+            return res.status(202).json({"success":false,"message":"You have selected a quiz, which does not match the current timing."})
+        }
+    }
+    catch(err)
+    {
+        return res.status(404).json({"success":false,"message":err});
+    }
+})
 
 
 module.exports = router;

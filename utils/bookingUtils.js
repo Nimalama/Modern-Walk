@@ -4,6 +4,7 @@ const {getFormattedToday, filterDate,days,getFancyDate} = require('../utils/util
 const TimeHalt = require('../models/timehalt')
 const Analysis = require('../models/analysisModel');
 const AnalysisItem = require('../models/analysisItemModel');
+const Quiz = require('../models/quizModel')
 const asyncc = require('async')
 
 const mapCheckout = async (req,res)=>{
@@ -279,4 +280,92 @@ const analyzeBusiness = async (req,res)=>{
 
 
 
-module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness};
+const quizStart = async ()=>{
+    try
+    {
+        Quiz.updateMany({
+            "startAt":getFormattedToday(new Date()),
+            "status":"Pending",
+            $or:[
+                {
+                    "startTime.0":new Date().getHours(),
+                    "startTime.1":{$lte:new Date().getMinutes()}
+                },
+                {
+                    "startTime.0":{$lt:new Date().getHours()}
+                }
+            ],
+            $or:[
+                {
+                    "endTime.0":{$gt:new Date().getHours()}
+                },
+                {
+                    "endTime.0":new Date().getHours(),
+                    "endTime.1":{$gt:new Date().getMinutes()}
+                }
+            ]
+         
+        },{
+            $set:{
+                "status":"Running"
+            }
+        })
+        .then((result)=>{
+            console.log("Some of the quiz is set to running state.")
+        })
+        .catch((err)=>{
+            console.log(err);
+        })
+
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+const quizEnd = async ()=>{
+    try
+    {
+        Quiz.updateMany({
+            $or:[
+                {
+                    "status":"Running"
+                },
+                {
+                    "status":"Pending"
+                }
+            ],
+            $or:[
+                {
+                    "endTime.0":{$lt:new Date().getHours()},
+                    "startAt":getFormattedToday(new Date())
+                },
+                {
+                    "endTime.0":new Date().getHours(),
+                    "endTime.1":{$lte:new Date().getMinutes()},
+                    "startAt":getFormattedToday(new Date())
+                },
+                {
+                    "startAt":{$lt:getFormattedToday(new Date())}
+                }
+            ]
+        },{
+            $set:{
+                "status":"Expired"
+            }
+        })
+        .then((result)=>{
+            console.log("Some of the quiz is set to expired state.")
+        })
+        .catch((err)=>{
+            console.log(err);
+        })
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness,quizStart,quizEnd};
