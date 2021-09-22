@@ -313,4 +313,22 @@ const getRandomList = (list)=>{
  }
  
 
-module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,replaceAll,genPinCode,parentPinGeneration,getRandomList,getManagedIndex};
+ const getRandomMultiList = (list)=>{
+    let clone = list.map((val)=>{return val});
+    let listBox = [];
+    for(var i of clone)
+    {
+        let clone2 = i.map((val)=>{return val});
+        let randomBox = [];
+        while(randomBox.length != i.length)
+        {
+            let index = parseInt(Math.random() * clone2.length);
+            randomBox.push(clone2[index]);
+            clone2.splice(index,1);
+        }
+        listBox.push(randomBox);
+    }
+    return listBox;
+ }
+
+module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,replaceAll,genPinCode,parentPinGeneration,getRandomList,getManagedIndex,getRandomMultiList};

@@ -3,7 +3,7 @@ const router = express.Router();
 const Quiz = require('../models/quizModel');
 const auth = require('../middleware/auth');
 const {check,validationResult} = require('express-validator')
-const {getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,getFormattedToday,getManagedIndex,getRandomList} = require('../utils/utils')
+const {getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,getFormattedToday,getManagedIndex,getRandomList,getRandomMultiList} = require('../utils/utils')
 
 
 router.post('/addQuiz',[
@@ -278,7 +278,7 @@ router.get('/fetchSingleQuiz/:quizId',auth.verifyUser,async(req,res)=>{
 //API: To fetch single running quiz
 router.get('/fetchQuiz/:quizId',async(req,res)=>{
     try{
-       let singleQuiz = await Quiz.findOne({'_id':req.params.quizId,'status':"Running",'startAt':getFormattedToday(new Date())});
+       let singleQuiz = await Quiz.findOne({'_id':req.params.quizId});
        if(singleQuiz != null)
        {
           let date = new Date();
@@ -293,8 +293,15 @@ router.get('/fetchQuiz/:quizId',async(req,res)=>{
           let randomQuestions = randomize[0];
           let indexOptions = getManagedIndex(options,randomize[1]); 
           let indexAnswers = getManagedIndex(answers,randomize[1]);
+          
+          let randomOptions = getRandomMultiList(indexOptions);
+         
 
-          return res.status(200).json({'success':true,'message':'Single Quiz Fetched.','data':singleQuiz,'questions':randomQuestions,'options':indexOptions,'answers':indexAnswers,'quizTime':timeRemain});
+         
+       
+          
+    
+          return res.status(200).json({'success':true,'message':'Single Quiz Fetched.','data':singleQuiz,'questions':randomQuestions,'options':randomOptions,'answers':indexAnswers,'quizTime':timeRemain});
        }
        else
        {
