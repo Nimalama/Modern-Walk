@@ -5,7 +5,10 @@ const TimeHalt = require('../models/timehalt')
 const Analysis = require('../models/analysisModel');
 const AnalysisItem = require('../models/analysisItemModel');
 const Quiz = require('../models/quizModel')
+const Doctor = require('../models/doctorModel');
 const asyncc = require('async')
+
+let todayDay = days[new Date().getDay()];
 
 const mapCheckout = async (req,res)=>{
     try
@@ -368,4 +371,80 @@ const quizEnd = async ()=>{
     }
 }
 
-module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness,quizStart,quizEnd};
+
+const onlineDoctor = async()=>{
+    try
+    {
+       Doctor.updateMany({
+           "breaks":{$ne:todayDay},
+           "onlineStatus":false,
+           $or:[
+               {
+                  "onlineTime.0":{$lt:new Date().getHours()}  
+               },
+               {
+                  "onlineTime.0":new Date().getHours(),
+                  "onlineTime.1":{$gte:new Date().getMinutes()}
+               }
+           ],
+           $or:[
+               {
+                   "offlineTime.0":new Date().getHours(),
+                   "offlineTime.1":{$gt:new Date().getHours()}
+               },
+               {
+                   "offlineTime.0":{$gt:new Date().getHours()}
+               }
+           ]
+       },{
+           $set:{
+               "onlineStatus":true
+           }
+       })
+      .then((result)=>{
+        console.log("Doctors online.")
+      })
+      .catch((err)=>{
+          console.log(err);
+      })
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+
+const offlineDoctor = async()=>{
+    try
+    {
+       Doctor.updateMany({
+           "onlineStatus":true,
+           $or:[
+               {
+                  "offlineTime.0":{$lt:new Date().getHours()}
+               },
+               {
+                  "offlineTime.0":new Date().getHours(),
+                  "offlineTime.1":{$lte:new Date().getMinutes()}
+               }
+           ]
+       },{
+           $set:{
+               "onlineStatus":false
+           }
+       })
+       .then((result)=>{
+           console.log("Offline done")
+       })
+       .catch((err)=>{
+           console.log(err);
+       })
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness,quizStart,quizEnd,onlineDoctor,offlineDoctor};

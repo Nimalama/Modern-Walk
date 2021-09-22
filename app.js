@@ -10,6 +10,7 @@ const bookRoute = require('./routes/bookingRoute');
 const giveAwayRoute = require('./routes/giveawayRoute');
 const checkoutRoute = require('./routes/checkoutRoute')
 const quizRoute = require('./routes/quizRoute')
+const doctorRoute = require('./routes/doctorRoute')
 const cors=require('cors');
 const path = require('path');
 const morgan = require('morgan')
@@ -29,6 +30,7 @@ app.use(productRoute);
 app.use(bookRoute);
 app.use(giveAwayRoute);
 app.use(checkoutRoute)
+app.use(doctorRoute)
 app.use(quizRoute)
 
 

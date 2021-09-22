@@ -3,7 +3,7 @@ const router = express.Router();
 const Quiz = require('../models/quizModel');
 const auth = require('../middleware/auth');
 const {check,validationResult} = require('express-validator')
-const {getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,getFormattedToday} = require('../utils/utils')
+const {getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,getFormattedToday,getManagedIndex,getRandomList} = require('../utils/utils')
 
 
 router.post('/addQuiz',[
@@ -273,6 +273,39 @@ router.get('/fetchSingleQuiz/:quizId',auth.verifyUser,async(req,res)=>{
         return res.status(404).json({"success":false,"message":err});
     }
 })
+
+
+//API: To fetch single running quiz
+router.get('/fetchQuiz/:quizId',async(req,res)=>{
+    try{
+       let singleQuiz = await Quiz.findOne({'_id':req.params.quizId,'status':"Running",'startAt':getFormattedToday(new Date())});
+       if(singleQuiz != null)
+       {
+          let date = new Date();
+          date.setHours(singleQuiz.endTime[0],singleQuiz.endTime[1],0);
+          let timeRemain = parseInt((date.getTime() - new Date().getTime()) / 1000); 
+
+          let questions = singleQuiz.questions.map((val)=>{return val});
+          let options =   singleQuiz.answers.map((val)=>{return val});
+          let answers =   singleQuiz.realAnswer.map((val)=>{return val});
+        
+          let randomize =  getRandomList(questions);  
+          let randomQuestions = randomize[0];
+          let indexOptions = getManagedIndex(options,randomize[1]); 
+          let indexAnswers = getManagedIndex(answers,randomize[1]);
+
+          return res.status(200).json({'success':true,'message':'Single Quiz Fetched.','data':singleQuiz,'questions':randomQuestions,'options':indexOptions,'answers':indexAnswers,'quizTime':timeRemain});
+       }
+       else
+       {
+          return res.status(202).json({'success':false,'message':'Quiz Unavailabe'})
+       } 
+    }
+   catch(err)
+   {
+     return res.status(404).json({'success':false,'message':err});
+   } 
+  })
 
 
 module.exports = router;

@@ -15,6 +15,17 @@ let timeBox = {
     "0":12
 };
 
+let numericCharacters = "0123456789";
+let lowerCaseCharacters = "abcdefghijklmnopqrstuvwxyz";
+let alphaCharacters = lowerCaseCharacters.trim()+lowerCaseCharacters.toUpperCase().trim();
+let overallCharacters = alphaCharacters+numericCharacters.trim();
+
+let characterBox = {
+    "numeric":numericCharacters,
+    "alpha":alphaCharacters,
+    "alphanumeric":overallCharacters
+}
+
 const getProductCode = (data)=>{
     let overallCode = data.map((val)=>{return val['productCode']});
     let alpha = "abcdefghijklmnopqrstuvwxyz";
@@ -226,4 +237,80 @@ const getFormattedTime = (time)=>{
     return time2;
 }
 
-module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime};
+const replaceAll = (sentence,to,by)=>{
+    let word = sentence;
+    let data = word.split(to);
+    let count = 0;
+    while(count != data.length)
+    {
+        word = word.replace(to,by);
+        count+=1;
+    }
+    return word
+}
+
+
+
+const genPinCode = (character,characterCount)=>{
+    let userCharacter = character.trim().toLowerCase();
+    if(Object.keys(characterBox).includes(userCharacter))
+    {
+	let pinCharacter = characterBox[userCharacter];
+        let pinCode = "";
+        while(pinCode.length != characterCount)
+        {
+           let index = parseInt(Math.random() * pinCharacter.length);
+           pinCode+=pinCharacter[index];   
+        }
+        return pinCode;
+    }
+    else
+    {
+       genPinCode('alphanumeric',6);
+    }
+}
+
+const parentPinGeneration = (character,characterCount,dataBox,word,attachment)=>{
+   let newPinCode = "";
+   if(attachment == true)
+   {
+     newPinCode+=word;
+   }
+
+   newPinCode+=genPinCode(character,characterCount);
+   if(dataBox.includes(newPinCode))
+   {
+      parentPinGeneration(character,characterCount,dataBox,word,attachment)
+   }
+   else
+   {
+     return newPinCode;
+   }
+}
+
+const getRandomList = (list)=>{
+    let collection = list.map((val)=>{return val});
+    let questionsBox = [];
+    let indexPoint = [];
+    while(questionsBox.length != list.length)
+    {
+       let index = parseInt(Math.random() * collection.length);
+       questionsBox.push(collection[index]);
+       indexPoint.push(list.indexOf(collection[index]));
+       collection.splice(index,1);
+    }
+ 
+    return [questionsBox,indexPoint];
+ }
+
+ const getManagedIndex = (list,indexes)=>{
+    let clone = list.map((val)=>{return val});
+    let indexClone = indexes.map((val)=>{return val});
+    let managedList = [];
+    
+    indexClone.map((val)=>{return managedList.push(clone[val])});
+    return managedList;
+ }
+ 
+
+module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,replaceAll,genPinCode,parentPinGeneration,getRandomList,getManagedIndex};
