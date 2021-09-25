@@ -50,7 +50,8 @@ const User = mongoose.model('Users', {
     },
     UserType: {
         type: String,
-        enum: ['Admin', 'Buyer', 'Seller','Doctor']
+        enum: ['Admin', 'Buyer', 'Seller','Doctor'],
+        'default':"Buyer"
     },
     dots:{
         "type": Number,

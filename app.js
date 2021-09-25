@@ -16,9 +16,7 @@ const path = require('path');
 const morgan = require('morgan')
 
 const app = express();
-if (process.env.NODE_ENV.trim() === "development") {
-    app.use(morgan("dev"));
-}
+
 
 app.use(cors());
 app.use(bodyparser.urlencoded({ extended: false }))

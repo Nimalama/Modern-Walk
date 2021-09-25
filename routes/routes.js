@@ -7,6 +7,10 @@ const jwt = require('jsonwebtoken');
 const auth= require('../middleware/auth');
 const upload = require('../middleware/upload');
 const {sendMailMessage} = require('../utils/mail')
+const {OAuth2Client} = require('google-auth-library');
+const {genPinCode,parentPinGeneration} = require('../utils/utils')
+
+const client = new OAuth2Client("152506000566-5ai7d5st3ufv6amebke7fel88hug8ihf.apps.googleusercontent.com")
 
 router.post('/users/insert', [
     check('fname', "First Name is required!!!").not().isEmpty(),
@@ -223,5 +227,69 @@ router.post('/resetPassword',[
     }
 })
 
+
+router.post('/googleLogin',async(req,res)=>{
+    try{
+      let tokenId = req.body['tokenId'];
+      client.verifyIdToken({idToken:tokenId,audience:"152506000566-5ai7d5st3ufv6amebke7fel88hug8ihf.apps.googleusercontent.com"})
+      .then(async(data)=>{
+         const {email_verified,name,email,given_name,family_name} = data.payload;
+
+         //checking the database
+         if(email_verified == true)
+         {
+            let user = await User.findOne({'Email':email});
+            let users = await User.find({});
+            let userNameContainer = users.map((val)=>{return val.Username});
+            let phoneNumberContaienr = users.map((val)=>{return val.Phoneno});
+            if(user != null)
+            {
+               let token = jwt.sign({'userId':user._id,'userType':user.UserType},'loginKey',{'expiresIn':"20h"});
+               let userData = await User.findOne({'_id':user._id},{'_id':0,'Password':0});
+               return res.status(200).json({'success':true,'message':"Logged in",'data':userData,'token':token});
+            }
+            else
+            {
+               let password = genPinCode("alphanumeric",8);
+               let userName = parentPinGeneration("numeric",4,userNameContainer,given_name,true);
+               let phoneNumber = parentPinGeneration("numeric",8,phoneNumberContaienr,"98",true);
+
+               bcryptjs.hash(password,10,(err,hash)=>{
+                const userObj = new User({
+                    "fname":given_name,
+                    "lname":family_name,
+                    "Dob":"1999-01-01",
+                    "Gender":"Male",
+                    "Address":"HeadQuarter",
+                    "Phoneno":phoneNumber,
+                    "Nationality":"Nepal",
+                    "Username":userName,
+                    "Email":email,
+                    "Password":hash
+                })
+    
+                userObj.save()
+                .then(async (data)=>{
+                 let token = jwt.sign({'userId':data._id,'userType':data.UserType},'loginKey',{'expiresIn':"20h"});
+                 let userData = await User.findOne({'_id':data._id},{'_id':0,'Password':0});
+                 return res.status(200).json({'success':true,'message':"Logged in",'data':userData,'token':token});
+                })
+                .catch((err)=>{
+                    return res.status(404).json({'success':false,'message':err});
+                })
+               })
+   
+               
+            }
+         }
+         
+         
+      })
+    }
+    catch(err)
+    {
+        return res.status(404).json({'success':false,'message':err});
+    }
+})
 
 module.exports = router;
