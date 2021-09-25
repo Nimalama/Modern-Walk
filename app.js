@@ -11,6 +11,7 @@ const giveAwayRoute = require('./routes/giveawayRoute');
 const checkoutRoute = require('./routes/checkoutRoute')
 const quizRoute = require('./routes/quizRoute')
 const doctorRoute = require('./routes/doctorRoute')
+const multiImagesRoute = require('./routes/multiImagesRoute');
 const cors=require('cors');
 const path = require('path');
 const morgan = require('morgan')
@@ -27,9 +28,10 @@ app.use(route);
 app.use(productRoute);
 app.use(bookRoute);
 app.use(giveAwayRoute);
-app.use(checkoutRoute)
-app.use(doctorRoute)
-app.use(quizRoute)
+app.use(checkoutRoute);
+app.use(doctorRoute);
+app.use(quizRoute);
+app.use(multiImagesRoute);
 
 
 app.listen(90)

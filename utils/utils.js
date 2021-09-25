@@ -1,3 +1,6 @@
+//third party modules
+const jwt = require('jsonwebtoken');
+
 let days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 let months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sept","Oct","Nov","Dec"];
 let timeBox = {
@@ -331,4 +334,16 @@ const getRandomList = (list)=>{
     return listBox;
  }
 
-module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,replaceAll,genPinCode,parentPinGeneration,getRandomList,getManagedIndex,getRandomMultiList};
+ const verifyToken = (tokenKey,secretKey)=>{
+     return (
+         new Promise((resolve,reject)=>{
+             jwt.verify(tokenKey,secretKey,(err,decoded)=>{
+                 err? resolve("Token Expired!!"):resolve(decoded)
+             })
+         })
+     )
+ }
+
+ 
+
+module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,replaceAll,genPinCode,parentPinGeneration,getRandomList,getManagedIndex,getRandomMultiList,verifyToken};
