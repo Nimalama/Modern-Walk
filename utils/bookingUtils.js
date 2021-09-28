@@ -4,7 +4,11 @@ const {getFormattedToday, filterDate,days,getFancyDate} = require('../utils/util
 const TimeHalt = require('../models/timehalt')
 const Analysis = require('../models/analysisModel');
 const AnalysisItem = require('../models/analysisItemModel');
+const Quiz = require('../models/quizModel')
+const Doctor = require('../models/doctorModel');
 const asyncc = require('async')
+
+let todayDay = days[new Date().getDay()];
 
 const mapCheckout = async (req,res)=>{
     try
@@ -52,7 +56,7 @@ const limitations = (req,res)=>{
                 {
                     for(var i of data2)
                     {
-                        Checkout.updateOne({"_id":i._id},{$set:{"userStatement":"Success"}})
+                        Checkout.updateOne({"_id":i._id},{$set:{"userStatement":"Success","deliveredAt":getFormattedToday(new Date())}})
                         .then((result)=>{})
                         .catch((err)=>{})
                     }
@@ -279,4 +283,168 @@ const analyzeBusiness = async (req,res)=>{
 
 
 
-module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness};
+const quizStart = async ()=>{
+    try
+    {
+        Quiz.updateMany({
+            "startAt":getFormattedToday(new Date()),
+            "status":"Pending",
+            $or:[
+                {
+                    "startTime.0":new Date().getHours(),
+                    "startTime.1":{$lte:new Date().getMinutes()}
+                },
+                {
+                    "startTime.0":{$lt:new Date().getHours()}
+                }
+            ],
+            $or:[
+                {
+                    "endTime.0":{$gt:new Date().getHours()}
+                },
+                {
+                    "endTime.0":new Date().getHours(),
+                    "endTime.1":{$gt:new Date().getMinutes()}
+                }
+            ]
+         
+        },{
+            $set:{
+                "status":"Running"
+            }
+        })
+        .then((result)=>{
+            console.log("Some of the quiz is set to running state.")
+        })
+        .catch((err)=>{
+            console.log(err);
+        })
+
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+const quizEnd = async ()=>{
+    try
+    {
+        Quiz.updateMany({
+            $or:[
+                {
+                    "status":"Running"
+                },
+                {
+                    "status":"Pending"
+                }
+            ],
+            $or:[
+                {
+                    "endTime.0":{$lt:new Date().getHours()},
+                    "startAt":getFormattedToday(new Date())
+                },
+                {
+                    "endTime.0":new Date().getHours(),
+                    "endTime.1":{$lte:new Date().getMinutes()},
+                    "startAt":getFormattedToday(new Date())
+                },
+                {
+                    "startAt":{$lt:getFormattedToday(new Date())}
+                }
+            ]
+        },{
+            $set:{
+                "status":"Expired"
+            }
+        })
+        .then((result)=>{
+            console.log("Some of the quiz is set to expired state.")
+        })
+        .catch((err)=>{
+            console.log(err);
+        })
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+
+const onlineDoctor = async()=>{
+    try
+    {
+       Doctor.updateMany({
+           "breaks":{$ne:todayDay},
+           "onlineStatus":false,
+           $or:[
+               {
+                  "onlineTime.0":{$lt:new Date().getHours()}  
+               },
+               {
+                  "onlineTime.0":new Date().getHours(),
+                  "onlineTime.1":{$gte:new Date().getMinutes()}
+               }
+           ],
+           $or:[
+               {
+                   "offlineTime.0":new Date().getHours(),
+                   "offlineTime.1":{$gt:new Date().getHours()}
+               },
+               {
+                   "offlineTime.0":{$gt:new Date().getHours()}
+               }
+           ]
+       },{
+           $set:{
+               "onlineStatus":true
+           }
+       })
+      .then((result)=>{
+        console.log("Doctors online.")
+      })
+      .catch((err)=>{
+          console.log(err);
+      })
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+
+const offlineDoctor = async()=>{
+    try
+    {
+       Doctor.updateMany({
+           "onlineStatus":true,
+           $or:[
+               {
+                  "offlineTime.0":{$lt:new Date().getHours()}
+               },
+               {
+                  "offlineTime.0":new Date().getHours(),
+                  "offlineTime.1":{$lte:new Date().getMinutes()}
+               }
+           ]
+       },{
+           $set:{
+               "onlineStatus":false
+           }
+       })
+       .then((result)=>{
+           console.log("Offline done")
+       })
+       .catch((err)=>{
+           console.log(err);
+       })
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+}
+
+module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness,quizStart,quizEnd,onlineDoctor,offlineDoctor};

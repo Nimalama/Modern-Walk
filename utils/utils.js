@@ -1,5 +1,34 @@
+//third party modules
+const jwt = require('jsonwebtoken');
+
 let days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 let months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sept","Oct","Nov","Dec"];
+let timeBox = {
+    "13":1,
+    "14":2,
+    "15":3,
+    "16":4,
+    "17":5,
+    "18":6,
+    "19":7,
+    "20":8,
+    "21":9,
+    "22":10,
+    "23":11,
+    "0":12
+};
+
+let numericCharacters = "0123456789";
+let lowerCaseCharacters = "abcdefghijklmnopqrstuvwxyz";
+let alphaCharacters = lowerCaseCharacters.trim()+lowerCaseCharacters.toUpperCase().trim();
+let overallCharacters = alphaCharacters+numericCharacters.trim();
+
+let characterBox = {
+    "numeric":numericCharacters,
+    "alpha":alphaCharacters,
+    "alphanumeric":overallCharacters
+}
+
 const getProductCode = (data)=>{
     let overallCode = data.map((val)=>{return val['productCode']});
     let alpha = "abcdefghijklmnopqrstuvwxyz";
@@ -137,5 +166,184 @@ const filterDate = (latestDate)=>{
 }
 
 
+const getCustomizedError = (data)=>{
+    let errorBox = {};
+    for(var i of data)
+    {
+        if(!Object.keys(errorBox).includes(i.param))
+        {
+          errorBox[i.param] = i.msg
+        }
+    }
 
-module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days};
+    return errorBox;
+}
+
+
+const checkTime = (time)=>{
+    let timeSet = time.getHours() >= 12? "PM":"AM";
+    if(timeSet == "PM" && time.getHours() >= 19)
+    {
+        return "Time cannot lie within the range of 5 minutes to or more than 7 PM."
+    }
+
+    else if(timeSet == "AM" && time.getHours() <= 5)
+    {
+        return "Time cannot be less than or equal to 5 AM."
+    }
+
+    else{
+        return true
+    }
+}
+
+const filterDateWithMarker = (start,end,markers)=>{
+    let startP = new Date(getFormattedToday(start));
+    let endP = new Date(getFormattedToday(end));
+    let difference = parseInt((endP.getTime() - startP.getTime()) / (1000*60*60*24)) + 1;
+    let dateContainer = [];
+    while(dateContainer.length != difference)
+    {
+        let formattedDate = getFormattedToday(startP);
+        dateContainer.push(formattedDate);
+        startP.setDate(start.getDate()+1);
+    }
+
+    let daysBox = dateContainer.map((val)=>{return days[new Date(val).getDay()]}); 
+
+    for(var i of markers)
+    {
+        let dayFilter = daysBox.filter((val)=>{return val == i});
+        let markerCount = dayFilter.length;
+        let count = 0;
+        while(count < markerCount)
+        {
+            let index = daysBox.indexOf(i);
+            dateContainer.splice(index,1);
+            daysBox.splice(index,1);
+            count+=1
+        }
+    }
+
+    return dateContainer;
+
+}
+
+
+const getFormattedTime = (time)=>{
+    let timeValue = time.getHours() >=12 ? "PM":"AM";
+    let time2 = `${time.getHours()}:${monthAndDateFormatter(time.getMinutes())} ${timeValue}`;
+    if(time.getHours() > 12 || time.getHours() == 0)
+    {
+        time2 = `${timeBox[time.getHours().toString()]}:${monthAndDateFormatter(time.getMinutes())} ${timeValue}`;
+    }
+    return time2;
+}
+
+const replaceAll = (sentence,to,by)=>{
+    let word = sentence;
+    let data = word.split(to);
+    let count = 0;
+    while(count != data.length)
+    {
+        word = word.replace(to,by);
+        count+=1;
+    }
+    return word
+}
+
+
+
+const genPinCode = (character,characterCount)=>{
+    let userCharacter = character.trim().toLowerCase();
+    if(Object.keys(characterBox).includes(userCharacter))
+    {
+	let pinCharacter = characterBox[userCharacter];
+        let pinCode = "";
+        while(pinCode.length != characterCount)
+        {
+           let index = parseInt(Math.random() * pinCharacter.length);
+           pinCode+=pinCharacter[index];   
+        }
+        return pinCode;
+    }
+    else
+    {
+       genPinCode('alphanumeric',6);
+    }
+}
+
+const parentPinGeneration = (character,characterCount,dataBox,word,attachment)=>{
+   let newPinCode = "";
+   if(attachment == true)
+   {
+     newPinCode+=word;
+   }
+
+   newPinCode+=genPinCode(character,characterCount);
+   if(dataBox.includes(newPinCode))
+   {
+      parentPinGeneration(character,characterCount,dataBox,word,attachment)
+   }
+   else
+   {
+     return newPinCode;
+   }
+}
+
+const getRandomList = (list)=>{
+    let collection = list.map((val)=>{return val});
+    let questionsBox = [];
+    let indexPoint = [];
+    while(questionsBox.length != list.length)
+    {
+       let index = parseInt(Math.random() * collection.length);
+       questionsBox.push(collection[index]);
+       indexPoint.push(list.indexOf(collection[index]));
+       collection.splice(index,1);
+    }
+ 
+    return [questionsBox,indexPoint];
+ }
+
+ const getManagedIndex = (list,indexes)=>{
+    let clone = list.map((val)=>{return val});
+    let indexClone = indexes.map((val)=>{return val});
+    let managedList = [];
+    
+    indexClone.map((val)=>{return managedList.push(clone[val])});
+    return managedList;
+ }
+ 
+
+ const getRandomMultiList = (list)=>{
+    let clone = list.map((val)=>{return val});
+    let listBox = [];
+    for(var i of clone)
+    {
+        let clone2 = i.map((val)=>{return val});
+        let randomBox = [];
+        while(randomBox.length != i.length)
+        {
+            let index = parseInt(Math.random() * clone2.length);
+            randomBox.push(clone2[index]);
+            clone2.splice(index,1);
+        }
+        listBox.push(randomBox);
+    }
+    return listBox;
+ }
+
+ const verifyToken = (tokenKey,secretKey)=>{
+     return (
+         new Promise((resolve,reject)=>{
+             jwt.verify(tokenKey,secretKey,(err,decoded)=>{
+                 err? resolve("Token Expired!!"):resolve(decoded)
+             })
+         })
+     )
+ }
+
+ 
+
+module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,replaceAll,genPinCode,parentPinGeneration,getRandomList,getManagedIndex,getRandomMultiList,verifyToken};

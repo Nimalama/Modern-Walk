@@ -4,8 +4,7 @@ const User = mongoose.model('Users', {
     profileImg:{
         type:String,
         default:"no-img.jpg",
-        
-        unique:true
+        "required":true
     },
     fname: {
         type: String,
@@ -27,8 +26,7 @@ const User = mongoose.model('Users', {
     },
     Phoneno: {
         type: Number,
-        required: true,
-        unique: true
+        required: true
 
     },
 
@@ -52,7 +50,8 @@ const User = mongoose.model('Users', {
     },
     UserType: {
         type: String,
-        enum: ['Admin', 'Buyer', 'Seller']
+        enum: ['Admin', 'Buyer', 'Seller','Doctor'],
+        'default':"Buyer"
     },
     dots:{
         "type": Number,

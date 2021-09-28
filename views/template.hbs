@@ -148,6 +148,32 @@
         <p style="text-align:center; font-weight:bolder;"> -Modern Walk</p>
     </div>
 
+    {{else if_equal  task 'Reset Password'}}
+    <div class="wrapper col-6">
+    <h5 class="intro"> Modern Walk</h5>
+    <div class="contents">
+        <h5 class="headings"> {{ heading }} </h5>
+        <a href={{ resetPasswordLink }} class="greeting"> Reset Password Link </a>
+     
+
+        <p style="text-align:center; font-weight:bolder;"> -Modern Walk</p>
+    </div>
+
+     {{else if_equal  task 'DoctorRegistration'}}
+    <div class="wrapper col-6">
+    <h5 class="intro"> Modern Walk</h5>
+    <div class="contents">
+        <h5 class="headings"> {{ heading }} </h5>
+        <h6 class="greeting"> {{ greeting }} </h6>
+        <p class="info"> {{ message }} </p>
+        <p class="info"> <strong>Username:</strong> {{ userName }} </p>
+        <p class="info"> <strong>Password:</strong> {{ password }} </p>
+        <p class="info"> {{ message2 }} </p>
+       
+
+        <p style="text-align:center; font-weight:bolder;"> -Modern Walk</p>
+    </div>
+
     
     {{/if_equal}}
 </body>
