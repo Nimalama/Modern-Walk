@@ -70,7 +70,7 @@ router.post('/bookProduct',auth.verifyUser,[
                         "message3":"You have 24 hrs to make your decision.",
                         "task": "Booking"
                     }
-                    sendMailMessage("Modern Walk", req.user.email, content);
+                    sendMailMessage("Modern Walk", req.user.Email, content);
     
                     return res.status(200).json({"success":true,"message":"Booked!!"})
                 })
@@ -486,7 +486,8 @@ router.get('/getBusinessAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (
             "path":"analysisId",
             "match":{"date":date}
         })
-        if(analysis.length > 0)
+        let dateBox = analysis.filter((val)=>{return val.analysisId != null})
+        if(dateBox.length > 0)
         {
            
             analysis = analysis.filter((val)=>{return val.analysisId !=null})
@@ -569,6 +570,7 @@ router.get('/dailyAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (req,re
     try
     {
         let date = req.params.date;
+     
         //fetching every results from analysis model keeping analysis item as a parent.
         let analysis = await AnalysisItem.find({})
         .populate({
@@ -583,9 +585,11 @@ router.get('/dailyAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (req,re
                 }
             }
         })
+      
+        let aD = analysis.filter((val)=>{return val.analysisId != null})
 
         //go according to sale rate.
-        if(analysis.length > 0)
+        if(aD.length > 0)
         {
             let itemsDescriptionContainer = {};
             let sortedPrice = {};
@@ -638,6 +642,7 @@ router.get('/dailyAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (req,re
             let overallPackage = {};
             overallPackage['quantityBox'] = sortedQuantity;
             overallPackage['priceBox'] = sortedPrice;
+            console.log(overallPackage)
  
    let overallAnalysis = analysis[0].analysisId;
            
@@ -646,10 +651,15 @@ router.get('/dailyAnalysis/:date',auth.verifyUser,auth.verifyAdmin,async (req,re
         }
         else
         {
-            return res.status(202).json({"success":false,"message":"0 records found."})
+            let overallPackage = {};
+            overallPackage['quantityBox'] = {"None":[0,0]};
+            overallPackage['priceBox'] =  {"None":[0,0]};
+            
+            return res.status(202).json({"success":false,"message":"0 records found.","data":overallPackage})
         }
     }
     catch(err){
+        console.log(err)
         return res.status(404).json({"success":false,"message":err});
     }
 })
