@@ -24,6 +24,7 @@ router.post('/addAItem',upload.fields([{'name':'foodPictures','maxCount':5}]),au
     check('discountPercent','Discount Percent cannot be left empty.').not().isEmpty(),
     check('status','Please choose status.').not().isEmpty(),
     check('price','Price should be in numeric form.').isNumeric(),
+    check('price','Price cannot be less than or equals to zero.').isFloat({'min':1}),
     check('discountPercent','Discount Percent should be in numeric form.').isNumeric()
 ],async(req,res)=>{
     try{
@@ -158,6 +159,7 @@ router.post('/addAItem',upload.fields([{'name':'foodPictures','maxCount':5}]),au
 
 //API: To update food details.
 router.put('/updateFood',auth.verifyUser,[
+    check('category','Category cannot be left empty.').not().isEmpty(),
     check('foodName','Foodname cannot be left empty.').not().isEmpty(),
     check('flavor','Flavor cannot be left empty.').not().isEmpty(),
     check('description','Description cannot be left empty.').not().isEmpty(),
@@ -165,6 +167,7 @@ router.put('/updateFood',auth.verifyUser,[
     check('discountPercent','Discount Percent cannot be left empty.').not().isEmpty(),
     check('status','Please choose status.').not().isEmpty(),
     check('price','Price should be in numeric form.').isNumeric(),
+    check('price','Price cannot be less than or equals to zero.').isFloat({'min':1}),
     check('discountPercent','Discount Percent should be in numeric form.').isNumeric()
 ],async(req,res)=>{
     try
@@ -172,6 +175,7 @@ router.put('/updateFood',auth.verifyUser,[
         let errors = validationResult(req);
         if(errors.isEmpty())
         {
+            let category = req.body['category'].trim().toUpperCase();
             let foodName = req.body['foodName'].trim();
             let flavor = req.body['flavor'].trim();
             let description = req.body['description'].trim();
@@ -209,7 +213,20 @@ router.put('/updateFood',auth.verifyUser,[
                         }
                     }) 
                     .then((result)=>{
-                        return res.status(200).json({'success':true,'message':"Updated!!"});
+                        HotelMenu.updateOne({
+                            "_id":foodDetail.hotelMenuId
+                        },{
+                            $set:{
+                                "category":category
+                            }
+                        })
+                        .then((result2)=>{
+                            return res.status(200).json({'success':true,'message':"Updated!!"});
+                        })
+                        .catch((err)=>{
+                            return res.status(404).json({'success':false,'message':err});
+                        })
+                        
                     })
                     .catch((err)=>{
                         return res.status(404).json({'success':false,'message':err});
@@ -240,7 +257,157 @@ router.put('/updateFood',auth.verifyUser,[
 })
 
 //API: Manage the order (swapping: if possible)
+router.put('/manageOrder',auth.verifyUser,async(req,res)=>{ //auth middleware contains hotel gate in future
+    try{
+      let hotelMenuId = req.body['hotelMenuId'];
+      let order = parseInt(req.body['order']);
 
+      let menu = await HotelMenu.findOne({'_id':hotelMenuId}); //hotelId
+      if(menu != null)
+      {
+         let checkByOrder = await HotelMenu.findOne({'order':order});    //hotelId
+         if(checkByOrder != null)
+         {
+            HotelMenu.updateOne({
+                "_id":checkByOrder._id
+            },{
+                "order":menu.order
+            })
+            .then((result)=>{})
+            .catch((err)=>{
+                return res.status(404).json({'success':false,'message':err});
+            }) 
+         }
+         
+             HotelMenu.updateOne({
+                 "_id":menu._id
+             },{
+                 $set:{
+                     "order":order
+                 }
+             })
+             .then((result)=>{
+                 return res.status(200).json({'success':true,'message':"Order Updated!!"});
+             })
+             .catch((err)=>{
+                 return res.status(404).json({'success':false,'message':err});
+             })
+         
+      }
+      else
+      {
+          return res.status(202).json({'success':false,'message':"Hotel Menu Unavailable."});
+      }
+    }
+    catch(err)
+    {
+        return res.status(404).json({'success':false,'message':err});
+    }
+})
+
+
+//API: Fetch the menu according to hotel
+router.get('/fetchMenuAccordingToHotel',async(req,res)=>{ //menu according to hotelId in future
+    try{
+      let hotelMenu = await HotelMenu.find({}).sort({'order':1});
+      let hotelFoodMenu = await HotelFoodModel.find({})
+      .populate({
+          "path":"hotelMenuId"
+      })
+
+      if(hotelMenu.length > 0)
+      {
+         return res.status(200).json({'success':true,'message':`${hotelMenu.length} categories and ${hotelFoodMenu.length} items found.`,'data':hotelMenu,'hotelFood':hotelFoodMenu});
+      }
+      else
+      {
+          return res.status(202).json({'success':false,'message':"Menu UnPublished."})
+      }
+    }
+    catch(err)
+    {
+        return res.status(404).json({'success':false,'message':err});
+    }
+})
+
+//API: Toggle food show status
+router.put('/toggleFoodStatus/:hotelMenuId',auth.verifyUser,async(req,res)=>{
+    try
+    {
+        let hotelId = await HotelFoodModel.findOne({'_id':req.params.hotelMenuId});
+        if(hotelId != null) {
+            let showCheck = {};
+            if(hotelId.showStatus == true)
+            {
+                showCheck['showStatus'] = false;
+            }
+            else
+            {
+                showCheck['showStatus'] = true;
+            }
+            HotelFoodModel.updateOne({'_id':hotelId._id},{
+                $set:showCheck
+            })
+            .then((data)=>{
+                return res.status(200).json({'success':true,'message':"Show Toggle Changed!!"});
+            })
+            .catch((err)=>{
+                return res.status(404).json({'success':false,'message':err});
+            })
+        }
+        else
+        {
+            return res.status(202).json({'success':false,'message':"Hotel Unavailable!!"});
+        }
+    }
+    catch(err)
+    {
+        return res.status(404).json({'success':false,'message':err});
+    }
+})
+
+//API: To change the picture of the food.
+router.put('/updatePictures',upload.fields([{'name':"foodPictures",'maxCount':5}]),auth.verifyUser,async(req,res)=>{
+    try{
+        let foodId = req.body['foodId'];
+       
+
+        if(req.files['foodPictures'] == undefined)
+        {
+            return res.status(202).json({'success':false,'message':"Inappropriate file format."});
+        }
+
+      
+
+        let hotelFood = await HotelFoodModel.findOne({'_id':foodId});
+        if(hotelFood != null)
+        {
+            HotelFoodModel.updateOne({
+                "_id":hotelFood._id
+            },{
+                $set:{
+                    "foodPictures":req.files.foodPictures.map((val)=>{return val.path})
+                }
+            })
+            .then((result)=>{
+                return res.status(200).json({'success':true,'message':`Pictures for ${hotelFood.foodName} changed.`})
+            })
+            .catch((err)=>{
+                console.log(err);
+                return res.status(404).json({'success':false,'message':err})
+            })
+        }
+        else
+        {
+            return res.status(202).json({'success':false,'message':"Unexisted data received."})    
+        }
+    }
+    catch(err)
+    {
+        console.log(err);
+        return res.status(404).json({'success':false,'message':err});
+    }
+})
 
 module.exports = router;
 

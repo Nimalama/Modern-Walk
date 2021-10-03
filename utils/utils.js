@@ -3,6 +3,7 @@ const jwt = require('jsonwebtoken');
 
 let days = ["Sunday","Monday","Tuesday","Wednesday","Thursday","Friday","Saturday"];
 let months = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sept","Oct","Nov","Dec"];
+let month = ["January","February","March","April","May","June","July","August","September","October","November","December"];
 let timeBox = {
     "13":1,
     "14":2,
@@ -136,7 +137,7 @@ const getGiveAwayCode = (data)=>{
 
 const getFancyDate =(date)=>{
     var today = new Date(date);
-    var formattedDate = `${today.getDate()}${months[today.getMonth()]},${today.getFullYear()}-${days[today.getDay()]}`;
+    var formattedDate = `${today.getDate()} ${months[today.getMonth()]},${today.getFullYear()}-${days[today.getDay()]}`;
     return formattedDate;
 }
 
@@ -344,6 +345,22 @@ const getRandomList = (list)=>{
      )
  }
 
+ const dateFiltration = (startDate,endDate)=>{
+     let start = startDate;
+     let end = endDate;
+     let difference = parseInt((end.getTime() - start.getTime()) / (1000*60*60*24)) +1;
+     let dateContainer = [];
+
+     while(dateContainer.length != difference)
+     {
+         let formatted = getFormattedToday(start);
+         dateContainer.push(formatted);
+         start.setDate(start.getDate()+1);
+     }
+
+     return dateContainer;
+ }
+
  
 
-module.exports = {getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,replaceAll,genPinCode,parentPinGeneration,getRandomList,getManagedIndex,getRandomMultiList,verifyToken};
+module.exports = {month,getProductCode,bookingData,todayDate,getFancyDate,getFormattedToday,getTimeValue,getGiveAwayCode,monthAndDateFormatter,filterDate,days,getCustomizedError,checkTime,filterDateWithMarker,getFormattedTime,replaceAll,genPinCode,parentPinGeneration,getRandomList,getManagedIndex,getRandomMultiList,verifyToken,dateFiltration};

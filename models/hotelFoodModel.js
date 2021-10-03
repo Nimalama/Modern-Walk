@@ -12,7 +12,8 @@ const HotelFoodModel = mongoose.model('HotelFoodModel',{
    "discountPercent":{'type':Number,'required':true,'default':0},
    "newPrice":{'type':Number,'required':true},
    'rating':{'type':Number,'required':true,'default':0},
-   'status':{'type':String,'required':true,'enum':['Special','Normal',"Today's Special"],'default':"Normal"}
+   'status':{'type':String,'required':true,'enum':['Special','Normal',"Today's Special"],'default':"Normal"},
+   "showStatus":{'type':Boolean,'required':true,'default':true}
 })
 
 module.exports = HotelFoodModel;

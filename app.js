@@ -12,7 +12,8 @@ const checkoutRoute = require('./routes/checkoutRoute')
 const quizRoute = require('./routes/quizRoute')
 const doctorRoute = require('./routes/doctorRoute')
 const multiImagesRoute = require('./routes/multiImagesRoute');
-const menuRoute = require('./routes/menuRoute')
+const menuRoute = require('./routes/menuRoute');
+const foodOrderRoute = require('./routes/foodOrderRoute');
 const cors=require('cors');
 const path = require('path');
 const morgan = require('morgan')
@@ -34,6 +35,7 @@ app.use(doctorRoute);
 app.use(quizRoute);
 app.use(multiImagesRoute);
 app.use(menuRoute);
+app.use(foodOrderRoute);
 
 
 app.listen(90)
