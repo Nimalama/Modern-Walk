@@ -62,6 +62,10 @@ const User = mongoose.model('Users', {
         "type":Number,
         "required":true,
         "default":0
+    },
+    createdAt:{
+        "type":String,
+        'required':true
     }
 })
 module.exports = User

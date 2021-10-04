@@ -1,12 +1,12 @@
 const schedule = require('node-schedule');
 const {giveawayResult}=require('../utils/giveawayUtils');
-const {mapCheckout,limitations,replacementTracking,analyzeBusiness,quizStart,quizEnd} = require('../utils/bookingUtils');
+const {mapCheckout,limitations,replacementTracking,analyzeBusiness,quizStart,quizEnd,messageForUnavailability} = require('../utils/bookingUtils');
 const {orderSwitch,eightMinuteAlert,sixteenMinuteAlert,ratingAverage} = require('../utils/hotelUtils');
 
 
 let today = new Date();
 
-today.setHours(13,23,0)
+today.setHours(11,8,0)
 
 
 schedule.scheduleJob("1 min task","*/1 * * * *",(req,res)=>{
@@ -17,6 +17,7 @@ schedule.scheduleJob("1 min task","*/1 * * * *",(req,res)=>{
     orderSwitch();
     eightMinuteAlert();
     sixteenMinuteAlert();
+
 })
 
 schedule.scheduleJob('1 day task',today,(req,res)=>{
@@ -24,4 +25,5 @@ schedule.scheduleJob('1 day task',today,(req,res)=>{
     limitations(req,res);
     giveawayResult(req,res);
     ratingAverage();
+    messageForUnavailability();
 })

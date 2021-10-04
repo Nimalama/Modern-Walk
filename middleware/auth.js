@@ -5,7 +5,6 @@ module.exports.verifyUser = function(req, res, next) {
 
     try {
         const token = req.headers.authorization.split(" ")[1];
-        
         const Userdata = jwt.verify(token, 'secretkey');
         User.findOne({ _id: Userdata.userId })
             .then(function(result) {
@@ -16,7 +15,6 @@ module.exports.verifyUser = function(req, res, next) {
                 res.status(500).json({ error: e })
             })
     } catch (er) {
-       
         res.status(401).json({ message: "Authorization failed !!" })
     }
 }

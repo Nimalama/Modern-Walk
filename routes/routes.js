@@ -8,7 +8,7 @@ const auth= require('../middleware/auth');
 const upload = require('../middleware/upload');
 const {sendMailMessage} = require('../utils/mail')
 const {OAuth2Client} = require('google-auth-library');
-const {genPinCode,parentPinGeneration} = require('../utils/utils')
+const {genPinCode,parentPinGeneration,getFormattedToday} = require('../utils/utils')
 
 const client = new OAuth2Client("152506000566-5ai7d5st3ufv6amebke7fel88hug8ihf.apps.googleusercontent.com")
 
@@ -52,7 +52,8 @@ router.post('/users/insert', [
                 Username: Username,
                 Email: Email,
                 Password: hash1,
-                UserType: UserType
+                UserType: UserType,
+                createdAt:getFormattedToday(new Date())
             })
 
             data.save().then(function (result) {
@@ -244,7 +245,7 @@ router.post('/googleLogin',async(req,res)=>{
             let phoneNumberContaienr = users.map((val)=>{return val.Phoneno});
             if(user != null)
             {
-               let token = jwt.sign({'userId':user._id,'userType':user.UserType},'loginKey',{'expiresIn':"20h"});
+               let token = jwt.sign({'userId':user._id,'userType':user.UserType},'secretkey',{'expiresIn':"20h"});
                let userData = await User.findOne({'_id':user._id},{'_id':0,'Password':0});
                return res.status(200).json({'success':true,'message':"Logged in",'data':userData,'token':token});
             }
@@ -265,7 +266,8 @@ router.post('/googleLogin',async(req,res)=>{
                     "Nationality":"Nepal",
                     "Username":userName,
                     "Email":email,
-                    "Password":hash
+                    "Password":hash,
+                    'createdAt':getFormattedToday(new Date())
                 })
     
                 userObj.save()

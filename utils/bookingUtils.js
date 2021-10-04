@@ -1,5 +1,6 @@
 const Checkout = require('../models/checkoutModel');
 const User = require('../models/registration')
+const ClothingBooking = require('../models/bookingModel');
 const {getFormattedToday, filterDate,days,getFancyDate} = require('../utils/utils');
 const TimeHalt = require('../models/timehalt')
 const Analysis = require('../models/analysisModel');
@@ -7,6 +8,7 @@ const AnalysisItem = require('../models/analysisItemModel');
 const Quiz = require('../models/quizModel')
 const Doctor = require('../models/doctorModel');
 const asyncc = require('async')
+const {sendMailMessage} = require('../utils/mail')
 
 let todayDay = days[new Date().getDay()];
 
@@ -447,4 +449,73 @@ const offlineDoctor = async()=>{
     }
 }
 
-module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness,quizStart,quizEnd,onlineDoctor,offlineDoctor};
+
+//Function:To send message to the customers who havenot checkout anything in 2 months time or havenot bought anything yet.
+const messageForUnavailability = async()=>{
+    try
+    {
+        if(new Date().getDate() % 4 == 0)
+        {
+                 //date instance
+        let instance = new Date();
+        instance.setDate(instance.getDate() - 60);
+        let formattedInstance = getFormattedToday(instance);
+        //filter every users
+        let users = await User.find({'UserType':"Buyer"});
+        let allUsers = await User.find({});
+        
+        //filter carts according to user and latestBought.
+        let carts = await ClothingBooking.aggregate([
+            {
+                $group:{
+                    "_id":"$user_id",
+                    "lastBought":{$max:"$booked_At"}
+                }
+            }
+        ])
+
+        //filter all carts
+        let allCarts = await ClothingBooking.find({});
+        let interactionUsers = allCarts.map((val)=>{return val.user_id.toString()});
+        let unInteractedUsers = users.filter((val)=>{return !interactionUsers.includes(val._id.toString()) && val.createdAt <= formattedInstance}).map((val)=>{return val._id.toString()});
+      
+       //filtration according to date.
+       let unavailable = carts.filter((val)=>{return val.lastBought <= formattedInstance});
+       let unavailableUsers = unavailable.map((val)=>{return val._id.toString()});
+       unavailableUsers.push(...unInteractedUsers);
+
+       //fetching email address and username of the users
+       let usernameOfUnavailable = allUsers.filter((val)=>{return unavailableUsers.includes(val._id.toString())}).map((val)=>{return val.Username});
+       let emailOfUnavailable = allUsers.filter((val)=>{return unavailableUsers.includes(val._id.toString())}).map((val)=>{return val.Email});
+     
+       //content for mail
+       
+        //sending mail
+       for(var i of emailOfUnavailable)
+       {
+        let content = {
+            "heading": "Modern Walk",
+            "greeting":usernameOfUnavailable[emailOfUnavailable.indexOf(i)],
+            "message": `We notice that you haven’t used your Modern Walk account to buy stuffs online. We would love to see you back!`,
+            "message2": "You can use our Modern Walk Web Application which is available for Windows, macOS and Linux.",
+            "message3":"Please note that all your data on application is encrypted with your password, which only you have. If you want to access the data in your Modern Walk account, you either need your password",
+            "message4":"Checkout sales,giveaways,discounts and quickly buy your goods.",    
+            "task": "Unavailability"
+        }
+           
+            sendMailMessage("Modern Walk misses you!",i,content);
+       }
+     
+       console.log("Notification for welcome back sent.");
+        }
+   
+
+    }
+    catch(err)
+    {
+        console.log(err);
+    }
+} 
+
+
+module.exports = {mapCheckout,limitations,replacementTracking,mapSatisfaction,analyzeBusiness,quizStart,quizEnd,onlineDoctor,offlineDoctor,messageForUnavailability};
